@@ -1,20 +1,19 @@
-package com.learncicd.userservice.auth;
+package com.learncicd.apigateway.config.security;
 
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import javax.crypto.SecretKey;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Base64;
 
 /**
@@ -67,6 +66,14 @@ import java.util.Base64;
  *
  * SO ACROSS AUTH-SERVICE & API-GATEWAY & USER-SERVICE & BOOKMARK-SERVICE  DOWNSTREAM SERVICES WE SHOULD USE SAME ALGORITHM, SAME SECRET KEY & SAME KEY LENGTH
  *
+ *  HERE RBAC (Role-Based Access Control) is used to enforce access control policies based on user roles.
+ *  ON API-GATEWAY LEVEL WE ARE ENFORCING ACCESS CONTROL POLICIES BASED ON USER ROLES OVER ALL MICRO-SERVICES API ENDPOINTS ROUTES
+ *  JR → only GET allowed.
+ *  SR → GET + POST allowed.
+ *  TL → GET + POST + PUT allowed.
+ *  ADMIN → unrestricted access to all bookmark endpoints.
+ *  This is enforced at gateway level, so requests are blocked before reaching services.
+ *  JWT must carry the correct roles claim (ROLE_JR, ROLE_SR, etc.), which Spring Security maps to hasRole() checks.
  *
  */
 @Configuration
@@ -77,13 +84,41 @@ public class SecurityConfig {
 
     public static final String SECRET_KEY = "UHJhdGhldXNoUkFKUkAyMjc0MTIjQFNHSDE5ODlNaWNyb0NJQ0RPYnNlcnZhYmlsaXR5UGVyZm9ybWFuY2VBbmRBTExLaW5kc09GRi1UZXN0aW5n";
 
+    private final String BOOKMARK_LINKS = "/api/bookmarks/**";
+    private final String USER_LINKS = "/api/users/**";
+
     // The method only contains Spring Security configuration calls that don't throw checked exceptions. so no throws Exception needed
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) {
         log.info("SecurityConfig API Request: Security Filter Chain HttpSecurity={}", http );
+
         http
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+                .csrf(csrf -> csrf.disable())
+                        .authorizeHttpRequests(auth -> auth
+
+                                // Public endpoints
+                                .requestMatchers("/auth/register-user","/auth/generate-token","/eureka/web","/eureka/**").permitAll()
+
+                                // JR → only READ (GET)
+                                .requestMatchers(HttpMethod.GET, BOOKMARK_LINKS,USER_LINKS).hasRole("JR")
+
+                                // SR → READ + WRITE (GET, POST)
+                                //.requestMatchers(HttpMethod.GET, BOOKMARK_LINKS,USER_LINKS).hasRole("SR")
+                                //.requestMatchers(HttpMethod.POST, BOOKMARK_LINKS,USER_LINKS).hasRole("SR")
+
+                                // TL → READ + WRITE + UPDATE (GET, PUT)
+                                .requestMatchers(HttpMethod.GET, BOOKMARK_LINKS,USER_LINKS).hasRole("TL")
+                                //.requestMatchers(HttpMethod.POST, BOOKMARK_LINKS,USER_LINKS).hasRole("TL")
+                                .requestMatchers(HttpMethod.PUT, BOOKMARK_LINKS,USER_LINKS).hasRole("TL")
+
+                                // ADMIN → full access (GET, PUT, DELETE)
+                                .requestMatchers(HttpMethod.GET,BOOKMARK_LINKS,USER_LINKS).hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.PUT,BOOKMARK_LINKS,USER_LINKS).hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.DELETE,BOOKMARK_LINKS,USER_LINKS).hasRole("ADMIN")
+
+                                // Any other request must be authenticated
+                                .anyRequest().authenticated()
+                        ).oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
         return http.build();
     }
 
@@ -100,7 +135,7 @@ public class SecurityConfig {
         // Force Same Algorithm Everywhere when validating JWT token in downstream services
         // HS512 is the algorithm used to sign the JWT : Force Same Algorithm Everywhere in every microservices
         return NimbusJwtDecoder.withSecretKey(getKey())
-                .macAlgorithm(MacAlgorithm.HS512)
+                .macAlgorithm(MacAlgorithm.HS512)    // enforce same algorithm everywhere
                 .build();
     }
 

@@ -1,20 +1,18 @@
-package com.learncicd.userservice.auth;
+package com.example.pbookmark.auth;
 
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import javax.crypto.SecretKey;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Base64;
 
 /**
@@ -71,15 +69,15 @@ import java.util.Base64;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @Slf4j
 public class SecurityConfig {
-
 
     public static final String SECRET_KEY = "UHJhdGhldXNoUkFKUkAyMjc0MTIjQFNHSDE5ODlNaWNyb0NJQ0RPYnNlcnZhYmlsaXR5UGVyZm9ybWFuY2VBbmRBTExLaW5kc09GRi1UZXN0aW5n";
 
     // The method only contains Spring Security configuration calls that don't throw checked exceptions. so no throws Exception needed
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info("SecurityConfig API Request: Security Filter Chain HttpSecurity={}", http );
         http
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
@@ -92,17 +90,19 @@ public class SecurityConfig {
         log.info("SecurityConfig : JwtDecoder");
         //return NimbusJwtDecoder.withSecretKey(Keys.hmacShaKeyFor(Base64.getDecoder().decode(SECRET_KEY))).build();
 
-        // Force Same Algorithm Everywhere
+        // Force Same Algorithm Everywhere when validating JWT token in downstream services
         SecretKey key = Keys.hmacShaKeyFor(
                 Base64.getDecoder().decode(SECRET_KEY)
         );
 
+        // Force Same Algorithm Everywhere when validating JWT token in downstream services
         // HS512 is the algorithm used to sign the JWT : Force Same Algorithm Everywhere in every microservices
         return NimbusJwtDecoder.withSecretKey(getKey())
                 .macAlgorithm(MacAlgorithm.HS512)
                 .build();
     }
 
+    // Force Same Algorithm Everywhere when validating JWT token in downstream services
     // HS512 is the algorithm used to sign the JWT : Force Same Algorithm Everywhere in every microservices
     private SecretKey getKey(){
         byte[] decodeKey = Base64.getDecoder().decode(SECRET_KEY);

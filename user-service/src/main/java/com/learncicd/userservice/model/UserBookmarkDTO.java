@@ -1,8 +1,10 @@
-package com.learncicd.userservice;
+package com.learncicd.userservice.model;
+
+import java.io.Serializable;
 
 public record UserBookmarkDTO(String username,
                               String email,
                               Long bookmarkId,
                               String title,
-                              String url) {
+                              String url) implements Serializable {
 }

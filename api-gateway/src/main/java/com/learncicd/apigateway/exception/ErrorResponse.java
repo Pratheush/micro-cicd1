@@ -1,4 +1,4 @@
-package com.learncicd.userservice.exception;
+package com.learncicd.apigateway.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

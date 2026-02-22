@@ -1,0 +1,14 @@
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://172.26.238.72:5432/user_service_db
+    username: user_service_user
+    password: userpass
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+server:
+  port: 9495

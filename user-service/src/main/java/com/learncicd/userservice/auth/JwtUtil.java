@@ -1,5 +1,6 @@
-package com.example.pbookmark.auth;
+package com.learncicd.userservice.auth;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,7 @@ import java.util.Base64;
 @Component
 public class JwtUtil {
 
-    public static final String SECRET_KEY = "ASHHDFHSOIUEUBDIFBUIEWGFVSDVFIWWEE487536DGKFHGHDSGFHKSDGFUEFUEVCUKEUFUDVCVDHSVHSDVHF";
+    public static final String SECRET_KEY = "UHJhdGhldXNoUkFKUkAyMjc0MTIjQFNHSDE5ODlNaWNyb0NJQ0RPYnNlcnZhYmlsaXR5UGVyZm9ybWFuY2VBbmRBTExLaW5kc09GRi1UZXN0aW5n";
 
 
     private Key getKey() {
@@ -25,5 +26,11 @@ public class JwtUtil {
                 .verifyWith((SecretKey) getKey())
                 .build()
                 .parseSignedClaims(token);
+    }
+
+    public Claims getClaims(String token){
+        return Jwts.parser().verifyWith((SecretKey) getKey())
+                .build().parseSignedClaims(token)
+                .getPayload();
     }
 }

@@ -1,0 +1,29 @@
+@PostMapping
+    public User createUser(@RequestBody User user) {
+        log.info("API Request: Create User name={}", user.getName());
+        return userService.createUser(user);
+    }
+
+    @GetMapping("/{id}")
+    public User getUser(@PathVariable Long id) {
+        log.info("API Request: Get User id={}", id);
+        return userService.getUser(id);
+    }
+
+    @GetMapping("/all-users")
+    public List<User> getAllUsers() {
+        log.info("API Request: Get All Users");
+        return userService.getAllUsers();
+    }
+
+    @PutMapping("/{id}")
+    public User updateUser(@PathVariable Long id, @RequestBody User user) {
+        log.info("API Request: Update User id={}", id);
+        return userService.updateUser(id, user);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteUser(@PathVariable Long id) {
+        log.info("API Request: Delete User id={}", id);
+        userService.deleteUser(id);
+    }

@@ -1,0 +1,110 @@
+#
+## Instead of Java DSL, you can wire filter in YAML: Because your filter factory name = AuthFilter → keyword = Auth. No code change needed.
+#spring:
+#  cloud:
+#    gateway:
+#      server:
+#        webflux:
+#          routes:
+#            - id: task_service
+#              uri: lb://TASK-SERVICE
+#              predicates:
+#                - Path=/api/tasks/**
+#                - Method=GET,POST
+#                - Header=Authorization, Bearer.*
+#                - Query=token
+#                - Header=X-Forwarded-For, 127.0.0.1
+#                - Header=X-Forwarded-Proto, https
+#                - Header=X-Forwarded-Host, localhost
+#                - Header=X-Forwarded-Port, 9595
+#                - Header=X-Forwarded-Path, /api/tasks
+#                - Header=X-Forwarded-Method, POST
+#                - Header=X-Forwarded-User-Agent, Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36
+#                - Header=X-Forwarded-Referer, http://localhost:9595/api/tasks
+#                - Header=X-Forwarded-Accept, application/json
+#                - Header=X-Forwarded-Authorization, Bearer.*
+#                - Header=X-Forwarded-Content-Type, application/json
+#                - Header=X-Forwarded-Query, token=.*
+#                - Header=X-Forwarded-Header, Authorization=Bearer.*
+#              filters:
+#                - AuthFilter
+#
+#            - id: user_service
+#              uri: lb://USER-SERVICE
+#              predicates:
+#                - Path=/api/users/**
+#              filters:
+#                - AuthFilter
+#                - name: RequestRateLimiter
+#                  args:
+#                    key-resolver: "#{@userKeyResolver}"
+#                    redis-rate-limiter.replenishRate: 10
+#                    redis-rate-limiter.burstCapacity: 20
+#                - name: CircuitBreaker
+#                  args:
+#                    name: USER-SERVICE-CB
+#                    fallbackUri: forward:/api/fallback/userServiceFallback
+#
+#            - id: bookmark_service
+#              uri: lb://BOOKMARK-SERVICE
+#              predicates:
+#                - Path=/api/bookmarks/**
+#              filters:
+#                - AuthFilter
+#                - name: RequestRateLimiter
+#                  args:
+#                    key-resolver: "#{@userKeyResolver}"
+#                    redis-rate-limiter.replenishRate: 10
+#                    redis-rate-limiter.burstCapacity: 20
+#                - name: CircuitBreaker
+#                  args:
+#                    name: PROJECT-BOOKMARK-CB
+#                    fallbackUri: forward:/api/fallback/bookmarkServiceFallback
+#
+#
+#            - id: auth_service
+#              uri: lb://AUTH-SERVICE
+#              predicates:
+#                - Path=/api/auth/**
+#
+#            - id: discovery_service
+#              uri: lb://DISCOVERY
+#              predicates:
+#                - Path=/eureka/web
+#              filters:
+#                - SetPath=/
+#
+#            - id: discovery_service_static
+#              uri: lb://DISCOVERY
+#              predicates:
+#                - Path=/eureka/**
+#
+#
+#
+#
+#
+#resilience4j:
+#  circuitbreaker:
+#    instances:
+#      USER-SERVICE-CB:
+#        register-health-indicator: true
+#        failureRateThreshold: 50
+#        minimumNumberOfCalls: 5
+#        waitDurationInOpenState: 20s
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#
+#
+#      PROJECT-BOOKMARK-CB:
+#        register-health-indicator: true
+#        failureRateThreshold: 50
+#        minimumNumberOfCalls: 5
+#        waitDurationInOpenState: 20s
+#        automaticTransitionFromOpenToHalfOpenEnabled: true
+#        permittedNumberOfCallsInHalfOpenState: 3
+#        slidingWindowType: COUNT_BASED
+#        slidingWindowSize: 10
+#
+#

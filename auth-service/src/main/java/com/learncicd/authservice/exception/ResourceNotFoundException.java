@@ -1,4 +1,14 @@
 package com.learncicd.authservice.exception;
 
-public class ResourceNotFoundException {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@Setter
+@AllArgsConstructor
+public class ResourceNotFoundException extends RuntimeException{
+    private String message;
+    private HttpStatus status;
 }

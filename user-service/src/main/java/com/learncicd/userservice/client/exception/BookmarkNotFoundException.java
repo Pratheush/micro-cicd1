@@ -1,4 +1,4 @@
-package com.example.pbookmark.domain.xception;
+package com.learncicd.userservice.client.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;

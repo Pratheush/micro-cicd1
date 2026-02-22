@@ -1,4 +1,4 @@
-package com.learncicd.userservice;
+package com.learncicd.userservice.repository;
 
 import com.learncicd.userservice.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;

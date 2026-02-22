@@ -1,4 +1,4 @@
-package com.learncicd.userservice;
+package com.learncicd.userservice.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
