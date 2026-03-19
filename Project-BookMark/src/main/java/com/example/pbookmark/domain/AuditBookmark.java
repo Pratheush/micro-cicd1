@@ -8,8 +8,14 @@ import java.time.Instant;
 public class AuditBookmark {
 
     @PrePersist
+    public void beforeCreate(Bookmark bookmark) {
+        bookmark.setCreatedAt(Instant.now());
+        // createdBy is set in service layer from Authentication
+    }
+
     @PreUpdate
-    private void beforeAnyUpdate(Bookmark bookmark) {
+    public void beforeUpdate(Bookmark bookmark) {
         bookmark.setUpdatedAt(Instant.now());
+        // updatedBy is set in service layer from Authentication
     }
 }

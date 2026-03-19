@@ -1,5 +1,6 @@
 package com.learncicd.userservice.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -59,4 +60,18 @@ public class FeignAuthInterceptor implements RequestInterceptor {
                     "Bearer " + jwtAuth.getToken().getTokenValue());
         }*/
     }
+
+    /**
+     * Feign client is forwarding the Authorization header from User-Service to Project-Bookmark through @Bean.
+     */
+    /*@Bean
+    public RequestInterceptor requestInterceptor() {
+        return template -> {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getCredentials() instanceof String token) {
+                template.header("Authorization", "Bearer " + token);
+            }
+        };
+    }*/
+
 }

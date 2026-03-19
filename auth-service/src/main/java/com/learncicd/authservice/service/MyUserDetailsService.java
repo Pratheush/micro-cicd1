@@ -17,12 +17,15 @@ import org.springframework.stereotype.Service;
  * this is mainly responsible for fetching user from db
  */
 
-@RequiredArgsConstructor
 @Slf4j
-@Service
+//@Service
 public class MyUserDetailsService implements UserDetailsService {
 
     private final UserRepo userRepo;
+
+    public MyUserDetailsService(UserRepo userRepo) {
+        this.userRepo = userRepo;
+    }
 
     @Nonnull
     @Override
@@ -30,8 +33,11 @@ public class MyUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(@Nonnull String username) throws UsernameNotFoundException {
         log.info("MyUserDetailsService: loadUserByUsername Received request to load user by username: {}", username);
 
-        User user = userRepo.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
-        log.info("MyUserDetailsService: loadUserByUsername User found: {}", user);
+        User user = userRepo.findByUsername(username).orElseThrow(() -> {
+            log.warn("{} Not Found",username);
+            return new UsernameNotFoundException("User Not Found");
+        });
+        log.info("MyUserDetailsService: loadUserByUsername User found: {}", user.getUsername());
         return new MyUserDetails(user);
 
     }

@@ -1,6 +1,7 @@
 package com.learncicd.userservice.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.learncicd.userservice.model.UserBookmarkDTO;
 
 import java.io.Serializable;
 import java.util.List;
@@ -22,7 +23,7 @@ public record PagedResult<T>(
         return new PagedResult<>(List.of(), 0, 0, 0, true, true, false, false,Optional.empty());
     }
 
-    public static PagedResult<BookmarkDTO> withMessage(String s) {
+    public static PagedResult<UserBookmarkDTO> withMessage(String s) {
         return new PagedResult<>(List.of(), 0, 0, 0, true, true, false, false, Optional.of(s));
     }
 }

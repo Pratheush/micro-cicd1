@@ -1,0 +1,55 @@
+# curl --request POST
+#  --url http://localhost:9495/auth/generate-token
+#  --header 'Authorization: Bearer '
+#  --header 'Content-Type: application/json'
+#  --data '{
+#  "username": "shaktikapoor",
+#  "password": "shaktikapoor123"
+#}'
+POST http://localhost:9495/auth/generate-token
+Authorization: Bearer
+Content-Type: application/json
+
+{
+  "username": "shaktikapoor",
+  "password": "shaktikapoor123"
+}
+
+###
+
+# curl --request POST
+#  --url http://localhost:9495/auth/register-user
+#  --header 'Authorization: Bearer '
+#  --header 'Content-Type: application/json'
+#  --data '{
+#    "firstName": "Shakti",
+#    "lastName": "Kapoor",
+#    "email": "shakti@gmail.com",
+#    "username": "shaktikapoor",
+#    "password": "shaktikapoor123",
+#    "roles": "ROLE_TL"
+#}'
+POST http://localhost:9495/auth/register-user
+Authorization: Bearer
+Content-Type: application/json
+
+{
+    "firstName": "Amrish",
+    "lastName": "Puri",
+    "email": "amrishpuri@gmail.com",
+    "username": "amrishpuri",
+    "password": "amrishpuri123",
+    "roles": "ROLE_JR"
+}
+
+###
+
+# curl --request GET
+#  --url 'http://localhost:9494/api/users/user-bookmarks?page=2'
+#  --header 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJwcmVtY2hvcHJhIiwiaXNzIjoicmFqQG91dGxvb2suY29tIiwiaWF0IjoxNzcyMjQ1MjE0LCJleHAiOjE3NzIyNDU1MTQsInJvbGVzIjoiUk9MRV9BRE1JTiIsImF1dGhvcml0aWVzIjpbIkJPT0tNQVJLX1VQREFURSIsIkJPT0tNQVJLX1JFQUQiLCJCT09LTUFSS19ERUxFVEUiXSwiZW1haWwiOiJwcmVtQGdtYWlsLmNvbSIsInVzZXJuYW1lIjoicHJlbWNob3ByYSJ9.OhYu7ajr7aAstALdQrXQrScMmuG_oZN1dfBKY5We2DMZSlLcDTK-OdBweEdUHWM6iBCVb4G5Da0Fdfc-n8nnrQ'
+GET http://localhost:9494/api/users/user-bookmarks?page=13
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzaGFrdGlrYXBvb3IiLCJpc3MiOiJyYWpAb3V0bG9vay5jb20iLCJpYXQiOjE3NzIyNDYzNjgsImV4cCI6MTc3MjI0NjY2OCwicm9sZXMiOiJST0xFX1RMIiwiYXV0aG9yaXRpZXMiOlsiQk9PS01BUktfUkVBRCIsIkJPT0tNQVJLX1VQREFURSJdLCJlbWFpbCI6InNoYWt0aUBnbWFpbC5jb20iLCJ1c2VybmFtZSI6InNoYWt0aWthcG9vciJ9.GUHdXsWawn4cJ5oaEtZVV0EAzwQeeK7vZcQSxsN8FgnvZ1Jn71XoOttmY9JjLmtPqrRPmUaEr5ce_EgBzVc9kQ
+
+###
+# DIRECT USER JWT GET BOOKMARKS BY PAGE :
+GET localhost:9494/api/users/user-bookmarks?page=2

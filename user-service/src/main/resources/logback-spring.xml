@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="unknown-service"/>
+
+    <!--The OpenTelemetryAppender is different: it ships logs as structured OTLP events, and it ignores/doesn’t allow <encoder>.-->
+    <!--OTEL appender logs → enriched automatically, shipped to Loki, where Grafana can correlate them with Tempo traces.-->
+    <!-- OpenTelemetry appender: ships logs to OTLP (Loki) -->
+    <!--If you want richer search in Loki, switch the console encoder to JSON.
+     Loki stores logs as structured JSON with fields like traceId, spanId, and spring.application.name.-->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes><!--to enrich logs with metadata::: thread.name , logger.name, log.level, exception.stacktrace TO LOKI-->
+        <!--<encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <level/>
+                <loggerName/>
+                <threadName/>
+                <message/>
+                <mdc/> &lt;!&ndash; includes traceId, spanId, spring.application.name: The mdc provider in the JSON encoder automatically includes MDC values (traceId, spanId, spring.application.name). No need to manually add them in the JSON pattern — they’ll be indexed as fields in Loki.&ndash;&gt;
+            </providers>
+        </encoder>-->
+    </appender>
+
+    <!-- Console appender with traceId, spanId, and application name -->
+    <!-- Console appender: human-readable logs with app name, traceId, spanId -->
+    <!--Add MDC (Mapped Diagnostic Context) placeholders in your log patterns Spring Boot with OpenTelemetry automatically puts traceId and spanId into the logging MDC
+    So update logback-spring.xml to include them in the encoder pattern: And for the OTEL appender, WE don’t need a pattern — it automatically enriches logs with trace/span IDs before sending them to Loki.-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %highlight(%-5level) %logger{36} - %msg [app=${appName} traceId=%X{traceId} spanId=%X{spanId}]%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- Reduce noise -->
+    <!-- Filter out stack traces for CustomException -->
+    <!--In logback-spring.xml, WE added a logger entry for com.learncicd.userservice.exception.CustomException at WARN with additivity=false.
+That ensures if any part of Spring or Feign tries to log CustomException, Logback won’t print a full stack trace at ERROR level — it respects your WARN setting.
+In other words, Logback acts as a safety net to suppress noisy stack traces for CustomException outside your handler.
+So this enforces log levels globally, so even if another framework(e.g., Feign, DispatcherServlet, Spring internals) logs CustomException, it won’t escalate to ERROR with stack trace.-->
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="WARN"/>
+    <logger name="org.springframework.aop" level="WARN"/>
+    <!-- Suppress stack trace for CustomException -->
+    <logger name="com.learncicd.userservice.exception.CustomException" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+    <logger name="com.learncicd.userservice.exception.GlobalExceptionHandler" level="WARN"/>
+
+    <!--Attach both appenders to the root logger-->
+    <!-- Root logger sends logs to both console and OTEL -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="OTEL"/>
+    </root>
+</configuration>

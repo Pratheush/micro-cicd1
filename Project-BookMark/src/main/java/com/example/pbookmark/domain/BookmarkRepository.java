@@ -16,16 +16,19 @@ com.example.pbookmark.domain package.
  */
 @Repository
 interface BookmarkRepository extends JpaRepository<Bookmark,Long> {
+
+    // Return paginated DTOs for bookmarks
     @Query("""
                SELECT
-                new com.example.pbookmark.domain.BookmarkDTO(b.id, b.title, b.url, b.createdAt)
+                new com.example.pbookmark.domain.BookmarkDTO(b.id, b.title, b.url, b.createdAt, b.createdBy, b.updatedBy)
                FROM Bookmark b
             """)
     Page<BookmarkDTO> findBookmarks(Pageable pageable);
 
+    // Return a single bookmark DTO by ID
     @Query("""
            SELECT
-            new com.example.pbookmark.domain.BookmarkDTO(b.id, b.title, b.url, b.createdAt)
+            new com.example.pbookmark.domain.BookmarkDTO(b.id, b.title, b.url, b.createdAt, b.createdBy, b.updatedBy)
            FROM Bookmark b
            WHERE b.id = :Id
         """)

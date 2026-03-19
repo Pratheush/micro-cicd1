@@ -1,5 +1,6 @@
 package com.learncicd.authservice.service;
 
+import com.learncicd.authservice.exception.UsernameAlreadyExistException;
 import com.learncicd.authservice.model.JwtTokenResponse;
 import com.learncicd.authservice.model.User;
 import com.learncicd.authservice.model.UserDTO;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +25,11 @@ public class UserService {
     public UserDTO saveUser(User user){
         log.info("Received request to save user: {}", user);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        Optional<User> userExist = userRepo.findByUsername(user.getUsername());
+        if(userExist.isPresent()){
+            log.warn("User already exist");
+            throw new UsernameAlreadyExistException("Username Already Exist Please Check!!!");
+        }
         User savedUser = userRepo.save(user);
         log.info("User saved successfully: {}", savedUser);
         return new UserDTO(
@@ -33,11 +41,13 @@ public class UserService {
     }
 
     public JwtTokenResponse generateToken(String username){
+        log.info("UserService : generating token : {}",username);
         String token = jwtUtil.generateToken(username);
         JwtTokenResponse jwtTokenResponse = new JwtTokenResponse();
         jwtTokenResponse.setToken(token);
         jwtTokenResponse.setType("Bearer");
         jwtTokenResponse.setValidUntil(jwtUtil.expirationDate(token).toString());
+        log.info("Generated token successfully");
         return jwtTokenResponse;
     }
 }

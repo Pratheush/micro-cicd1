@@ -21,7 +21,8 @@ public class Validator {
             "/auth/generate-token",
             //"/validate-token/{token}",
             "/eureka/web",
-            "/eureka/**"
+            "/eureka/**",
+            "/actuator/health"
     );
 
     public Predicate<ServerHttpRequest> predicate = serverHttpRequest -> {

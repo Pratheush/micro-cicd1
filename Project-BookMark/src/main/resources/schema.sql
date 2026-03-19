@@ -4,7 +4,9 @@ create table bookmarks(
   title      varchar not null,
   url        varchar not null,
   created_at timestamp,
-  updated_at timestamp
+  updated_at timestamp,
+  created_by varchar,
+  updated_by varchar
 );
 
 --DROP TABLE IF EXISTS bookmarks;

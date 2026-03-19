@@ -35,6 +35,7 @@ public class UserController {
 
     @PostMapping("/generate-token")
     public JwtTokenResponse generateToken(@RequestBody LoginRequest loginRequest){
+        //log.info("Auth-Service UserController : generateToken : {}",loginRequest);
         try {
             // Validate Passwords at Login. Spring Security compares the raw password with the stored hash using the same encoder
             // Internally, PasswordEncoder.matches(rawPassword, encodedPassword) is called.

@@ -1,6 +1,7 @@
 package com.learncicd.apigateway.filter;
 
 import jakarta.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -44,6 +45,7 @@ import java.nio.charset.StandardCharsets;
  */
 
 @Component
+@Slf4j
 public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
@@ -57,6 +59,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     @Override
     @Nonnull
     public Mono<Void> filter(ServerWebExchange exchange,@Nonnull GatewayFilterChain chain) {
+        log.info("AuthGlobalFilter filter() is called");
 
         if (!validator.predicate.test(exchange.getRequest())) {
             return chain.filter(exchange);
@@ -65,12 +68,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         HttpHeaders headers = exchange.getRequest().getHeaders();
 
         if (!headers.containsHeader(HttpHeaders.AUTHORIZATION)) {
+            log.warn("Authorization header missing");
             return unauthorized(exchange, "Authorization header missing");
         }
 
         String authHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Invalid Authorization format");
             return unauthorized(exchange, "Invalid Authorization format");
         }
 
@@ -79,6 +84,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         try {
             jwtUtil.validateToken(token);
         } catch (Exception e) {
+            log.warn("Invalid token");
             return unauthorized(exchange, "Invalid token");
         }
 
@@ -86,6 +92,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String msg) {
+        log.info("AuthGlobalFilter unauthorized() is called");
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         DataBuffer buffer = exchange.getResponse()
                 .bufferFactory()
@@ -95,6 +102,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     @Override
     public int getOrder() {
+        log.info("AuthGlobalFilter getOrder() is called");
         return -1; // run early
     }
 }

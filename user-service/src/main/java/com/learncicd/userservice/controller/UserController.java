@@ -6,6 +6,7 @@ import com.learncicd.userservice.client.PagedResult;
 import com.learncicd.userservice.client.UpdateBookmarkRequest;
 import com.learncicd.userservice.model.UserBookmarkDTO;
 import com.learncicd.userservice.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -23,8 +24,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/health")
-    public String getUserHealth() {
-        log.info("API Request: Get User Health");
+    public String getUserHealth(HttpServletRequest request) {
+        log.info("API Request: Get User Health. TraceParent: {}",request.getHeader("traceparent")); // If it is null, the header is not reaching the service. propagation is failing
         return "USER-UP-Healthy";
     }
 
@@ -39,10 +40,11 @@ public class UserController {
 
     // Update bookmark with validation : check if bookmark with the title exist
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateBookmark(@PathVariable Long id,
+    public ResponseEntity<BookmarkDTO> updateBookmark(@PathVariable Long id,
                                @RequestBody UpdateBookmarkRequest request){
-        String msg = userService.updateBookmark(id, request);
-        return ResponseEntity.ok(msg);
+        log.info("UserController updateBookmark API Request: Update Bookmark id={}", id);
+        BookmarkDTO updateBookmarkDTO = userService.updateBookmark(id, request);
+        return ResponseEntity.ok(updateBookmarkDTO);
     }
 
 
@@ -58,15 +60,17 @@ public class UserController {
      *  Username & email come directly from JWT claims, so user-service doesn’t need a DB.
       */
     @GetMapping("/user/bookmarks/{id}")
-    public ResponseEntity<UserBookmarkDTO> getUserBookmark(@PathVariable Long id,
+    public ResponseEntity<UserBookmarkDTO> getUserBookmarkJWT(@PathVariable Long id,
                                                           @AuthenticationPrincipal Jwt jwt) {
+        log.info("UserController getUserBookmark with JWT API Request: Get User Bookmark id={}", id);
         UserBookmarkDTO userBookmarkDTO = userService.getUserBookmark(id, jwt);
+        log.debug("UserController getUserBookmark() : UserBookmarkDTO Response: {}",userBookmarkDTO);
         return ResponseEntity.ok(userBookmarkDTO);
     }
 
     @GetMapping("/user-bookmarks/{id}")
     public ResponseEntity<UserBookmarkDTO> getUserBookmark(@PathVariable Long id){
-        log.info("UserController API Request: Get User Bookmark id={}", id);
+        log.info("UserController getUserBookmark without JWT API Request: Get User Bookmark id={}", id);
         UserBookmarkDTO userbookmarkDTO = userService.getUserBookmark(id);
         log.info("API Response: UserBookmarkDTO={}", userbookmarkDTO);
         return ResponseEntity.ok(userbookmarkDTO);
@@ -77,10 +81,10 @@ public class UserController {
             @RequestParam(name = "page", defaultValue = "1") Integer pageNo,
             @RequestParam(name = "size", defaultValue = "10") Integer pageSize,
             @AuthenticationPrincipal Jwt jwt){
-        log.info("UserController API Request: Get User Bookmarks page={}, size={}", pageNo, pageSize);
+        log.info("UserController getUserAllBookmarks with JWT API Request: Get User Bookmarks page={}, size={}", pageNo, pageSize);
         // PagedResult<UserBookmarkDTO> userbookmarksDTO = userService.getUserBookmarks(pageNo, pageSize, jwt);
         PagedResult<UserBookmarkDTO> userbookmarksDTO = userService.getUserBookmarksCached(pageNo, pageSize, jwt);
-        log.info("UserController API Response: UserBookmarksDTO={}", userbookmarksDTO);
+        log.info("UserController getUserAllBookmarks with JWT API Response: UserBookmarksDTO PageNumber={}", userbookmarksDTO.pageNumber());
         return ResponseEntity.ok(userbookmarksDTO);
     }
 }

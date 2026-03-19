@@ -18,10 +18,8 @@ public class ErrorResponse {
     private LocalDateTime timestamp;
     private String message;
 
-    public ErrorResponse(String message, HttpStatus status) {
-        this.message = message;
-        this.status = status;
-        this.timestamp = LocalDateTime.now();
+    public ErrorResponse(String message){
+        this.message=message;
     }
 
 }

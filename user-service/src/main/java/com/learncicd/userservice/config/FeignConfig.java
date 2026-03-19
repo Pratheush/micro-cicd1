@@ -1,5 +1,7 @@
 package com.learncicd.userservice.config;
 
+import feign.Client;
+import feign.Logger;
 import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,4 +30,16 @@ public class FeignConfig {
     public ErrorDecoder errorDecoder() {
         return new CustomErrorDecoder();
     }
+
+    @Bean
+    public Client feignClient() {
+        return new feign.okhttp.OkHttpClient(); // or return new feign.hc5.ApacheHttp5Client();
+
+    }
+
+    @Bean
+    public Logger.Level feignLoggerLevel() {
+        return Logger.Level.FULL; // logs full request/response including body
+    }
+
 }

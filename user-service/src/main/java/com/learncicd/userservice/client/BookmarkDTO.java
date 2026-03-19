@@ -7,6 +7,8 @@ public record BookmarkDTO(
         Long id,
         String title,
         String url,
-        Instant createdAt) implements Serializable {
+        Instant createdAt,
+        String createdBy,
+        String updatedBy) implements Serializable {
 
 }

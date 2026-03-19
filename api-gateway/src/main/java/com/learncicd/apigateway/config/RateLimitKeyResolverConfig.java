@@ -4,6 +4,7 @@ import com.learncicd.apigateway.filter.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,11 +39,13 @@ import java.util.Base64;
  */
 
 @Configuration
+@Slf4j
 public class RateLimitKeyResolverConfig {
 
     @Primary
     @Bean("userKeyResolver")
     public KeyResolver userKeyResolver() {
+        log.info("userKeyResolver Bean is created");
         return exchange -> {
             String authHeader = exchange.getRequest()
                     .getHeaders()

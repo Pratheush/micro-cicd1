@@ -6,5 +6,5 @@ public enum UserRole {
     ROLE_TL,
     ROLE_SR,
     ROLE_JR,
-    ROLE_USER,
+    ROLE_USER
 }

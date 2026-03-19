@@ -648,6 +648,12 @@ Use IP resolver when:
 
 
 
+## @TimeLimiter expects the method to return an asynchronous type such as CompletionStage<T> or Future<T> (e.g., CompletableFuture<T>), not a plain synchronous object.
+
+
+
+
+
 
 
 

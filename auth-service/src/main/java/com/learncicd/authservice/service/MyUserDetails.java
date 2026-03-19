@@ -5,9 +5,11 @@ import com.learncicd.authservice.model.User;
 import com.learncicd.authservice.model.UserAuthority;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,13 +23,20 @@ import java.util.stream.Collectors;
  * or Serializable. Since your User entity already implements Serializable, you can safely ignore or suppress this warning.
  *
  */
-@RequiredArgsConstructor
+
+@Slf4j
 public class MyUserDetails implements UserDetails {
 
     private final User user;
 
+    public MyUserDetails(User user){
+        this.user = user;
+        log.debug("MyUserDetails constructor user={}", user.getUsername());
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        log.debug("MyUserDetails getAuthorities() user={}", user.getUsername());
         /*List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
 
         // ✅ Map role to authorities dynamically
@@ -46,28 +55,30 @@ public class MyUserDetails implements UserDetails {
 
         // ✅ Map role to authorities dynamically
         Set<UserAuthority> mappedAuthorities = RoleAuthorityMapper.getAuthorities(user.getRoles());
-
+        log.debug("MyUserDetails getAuthorities mappedAuthorities={}", mappedAuthorities);
         // ✅ Convert to GrantedAuthority list
         List<GrantedAuthority> grantedAuthorities = new ArrayList<>( mappedAuthorities
                 .stream()
                 .map(auth -> new SimpleGrantedAuthority(auth.name()))
                 .toList());
-
+        log.debug("MyUserDetails getAuthorities grantedAuthorities={}", grantedAuthorities);
         // ✅ Add role itself as a GrantedAuthority (Spring expects ROLE_ prefix)
         grantedAuthorities.add(new SimpleGrantedAuthority(user.getRoles().name()));
-
+        log.debug("MyUserDetails getAuthorities grantedAuthorities={}", grantedAuthorities);
         return grantedAuthorities;
     }
 
     @Override
     @Nonnull
     public String getPassword() {
+        log.debug("MyUserDetails getPassword() user={}", user.getUsername());
         return user.getPassword();
     }
 
     @Override
     @Nonnull
     public String getUsername() {
+        log.debug("MyUserDetails getUsername() user={}", user.getUsername());
         return user.getUsername();
     }
 

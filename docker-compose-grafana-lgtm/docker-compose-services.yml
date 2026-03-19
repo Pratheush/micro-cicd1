@@ -1,0 +1,87 @@
+# Your actual microservices.
+services:
+  discovery-service:
+    image: discovery-service:2.0
+    container_name: discovery-service
+    build: .
+    ports:
+      - "8761:8761"
+#    depends_on:
+#      - grafana-lgtm
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  auth-service:
+    image: auth-service:2.0
+    container_name: auth-service
+    build: .
+    #    ports:
+    #      - "8080:8080"
+    depends_on:
+#      - grafana-lgtm
+      - discovery-service
+#      - postgres
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  user-service:
+    image: user-service:2.0
+    container_name: user-service
+    build: .
+    #    ports:
+    #      - "8080:8080"
+    depends_on:
+#      - grafana-lgtm
+      - discovery-service
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  project-bookmark:
+    image: project-bookmark:2.0
+    container_name: project-bookmark
+    build: .
+    #    ports:
+    #      - "8080:8080"
+    depends_on:
+#      - grafana-lgtm
+      - discovery-service
+#      - redis
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  api-gateway:
+    image: api-gateway:2.0
+    container_name: api-gateway
+    build: .
+    ports:
+      - "9595:8080"
+    depends_on:
+#      - grafana-lgtm
+      - discovery-service
+#      - redis
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+networks:
+  backend-network:
+    driver: bridge

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="unknown-service"/>
+
+    <!--The OpenTelemetryAppender is different: it ships logs as structured OTLP events, and it ignores/doesn’t allow <encoder>.-->
+    <!--OTEL appender logs → enriched automatically, shipped to Loki, where Grafana can correlate them with Tempo traces.-->
+    <!-- OpenTelemetry appender: ships logs to OTLP (Loki) -->
+    <!--If you want richer search in Loki, switch the console encoder to JSON.
+     Loki stores logs as structured JSON with fields like traceId, spanId, and spring.application.name.-->
+    <!--using OpenTelemetryAppender with a JSON encoder (LoggingEventCompositeJsonEncoder). This ensures logs are shipped to Loki with structured fields (traceId, spanId, spring.application.name) automatically included via MDC. Perfect for Grafana correlation.-->
+    <!--arguments → If WE log like:log.warn("Failed to call service {} with id {}", serviceName, id); Loki will store serviceName and id as structured JSON fields. WE can query them directly in Grafana.-->
+    <!--stackTrace → If WE log an exception: log.error("Unexpected error", ex); Loki will store the full stack trace as a JSON field. WE can search or filter logs by exception type or message.-->
+    <!-- In Loki, WE’ll be able to query logs like: LOGQL> {app="user-service"} |= "IOException" or filter by structured fields: LOGQL >> {app="user-service"} | json | serviceName="bookmark-service"-->
+    <!--👉 In short: just add <arguments/> and <stackTrace/> inside the <providers> block of your OTEL appender. This makes your logs fully structured JSON, giving you powerful search and correlation in Loki/Grafana.-->
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+        <captureExperimentalAttributes>true</captureExperimentalAttributes><!--to enrich logs with metadata::: thread.name , logger.name, log.level, exception.stacktrace TO LOKI-->
+        <!--<encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+            <timestamp/>       &lt;!&ndash; log timestamp &ndash;&gt;
+            <level/>           &lt;!&ndash; log level &ndash;&gt;
+            <loggerName/>      &lt;!&ndash; logger class &ndash;&gt;
+            <threadName/>      &lt;!&ndash; thread name &ndash;&gt;
+            <message/>         &lt;!&ndash; log message &ndash;&gt;
+            <arguments/>       &lt;!&ndash; captures method arguments passed to log statements &ndash;&gt;
+            <stackTrace/>      &lt;!&ndash; captures exception stack traces in JSON &ndash;&gt;
+            <mdc/>             &lt;!&ndash; includes traceId, spanId, spring.application.name: The mdc provider in the JSON encoder automatically includes MDC values (traceId, spanId, spring.application.name). No need to manually add them in the JSON pattern — they’ll be indexed as fields in Loki.&ndash;&gt;
+        </providers>
+        </encoder>-->
+    </appender>
+
+    <!-- Console appender with traceId, spanId, and application name -->
+    <!-- Console appender: human-readable logs with app name, traceId, spanId -->
+    <!--Add MDC (Mapped Diagnostic Context) placeholders in your log patterns Spring Boot with OpenTelemetry automatically puts traceId and spanId into the logging MDC
+    So update logback-spring.xml to include them in the encoder pattern: And for the OTEL appender, WE don’t need a pattern — it automatically enriches logs with trace/span IDs before sending them to Loki.-->
+    <!--TO SEE INFO audit logs INSIDE the <filter> set it to INFO FOR DEVELOPMENT BUT IN PRODUCTION SET IT TO WARN.-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %highlight(%-5level) %logger{36} - %msg [app=${appName}  traceId=%X{traceId} spanId=%X{spanId}]%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- Reduce noise -->
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="WARN"/>
+    <logger name="org.springframework.aop" level="WARN"/>
+    <!--Logger granularity : TUNING UP THE VERBOSITY OF explicit loggers for your custom filters (SecurityAuditWebFilter, AuthGlobalFilter) -->
+    <logger name="com.learncicd.apigateway.filters.SecurityAuditWebFilter" level="INFO"/>
+    <logger name="com.learncicd.apigateway.filters.AuthGlobalFilter" level="INFO"/>
+    <logger name="com.learncicd.apigateway.exception.GlobalExceptionHandler" level="WARN"/>
+
+
+    <!--Attach both appender to the root logger-->
+    <!-- Root logger sends logs to both console and OTEL -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="OTEL"/>
+    </root>
+</configuration>

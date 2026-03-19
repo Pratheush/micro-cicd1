@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.1</version>
+        <version>4.0.3</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.learncicd</groupId>
@@ -34,6 +34,12 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-configuration</groupId>
+                    <artifactId>commons-configuration</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -47,11 +53,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -136,6 +137,7 @@
             <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
         </dependency>
 
+        <!--REDIS DEPENDENCY FOR CACHING-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
@@ -143,6 +145,53 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!--OPENTELEMETRY + MICROMETER + OTEL-REGISTRY-OTLP DEPENDENCY for DISTRIBUTED TRACING-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+            <version>2.25.0-alpha</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-opentelemetry-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--The default Feign client doesn’t buffer error bodies, so your CustomErrorDecoder sees null-->
+        <!--OkHttp or Apache clients buffer the response body, making it available for decoding.-->
+        <!--Duplicate Feign HTTP client libraries : added both: feign-okhttp, feign-hc5  only choose one -->
+        <!--Feign should use only one HTTP client implementation. Having both can cause unpredictable behavior-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+            <version>13.9.3</version>
+            <scope>compile</scope>
+        </dependency>
+        <!--<dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-hc5</artifactId>
+            <version>13.9.3</version>
+            <scope>compile</scope>
+        </dependency>-->
+
+
+        <!--Spring Cloud LoadBalancer internally caches service instances (from Eureka)
+        to avoid hitting the registry for every request. By default, it uses a simple in‑memory
+        cache implementation. INSTEAD USE CAFFEINE CACHE-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.2.3</version>
         </dependency>
 
     </dependencies>
@@ -155,6 +204,71 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-configuration2</artifactId>
+                <version>2.13.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-fileupload</groupId>
+                <artifactId>commons-fileupload</artifactId>
+                <version>1.6.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-jxpath</groupId>
+                <artifactId>commons-jxpath</artifactId>
+                <version>1.4.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>32.0.0-jre</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5.13</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>11.0.18</version>
+            </dependency>
+
+            <!--
+            the basic idea is that instead of specifying version explicitly for every Jackson component,
+            as part of the dependency definition, one can use a BOM to get a full, complete set of compatible
+            versions to use by specifying a single version number.
+            -->
+            <!--
+            type=pom → tells Maven this is a POM file, not a JAR.
+            scope=import → imports the dependency management section of that BOM into your project.
+            Effect: all Jackson modules (jackson-core, jackson-databind, jackson-annotations, etc.) are locked to the versions defined in the BOM, ensuring consistency and avoiding CVEs.
+            -->
+            <!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson/jackson-bom -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.21.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Source: https://mvnrepository.com/artifact/tools.jackson/jackson-bom -->
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>3.1.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -176,6 +290,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!--<layers enabled="true"/>-->
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -184,6 +299,37 @@
                     </excludes>
                 </configuration>
             </plugin>
+                <plugin>
+                    <groupId>org.owasp</groupId>
+                    <artifactId>dependency-check-maven</artifactId>
+                    <version>12.2.0</version>
+                    <configuration>
+                        <!-- Add your NVD API key here -->
+                        <nvdApiKey>def675f8-ecc6-4032-9b84-40c7d1e83ed3</nvdApiKey>
+
+                        <!-- Cache directory for NVD data -->
+                        <dataDirectory>${user.home}/.m2/dependency-check-data</dataDirectory>
+
+                        <!-- Fail build if update fails but still use cached data -->
+                        <failOnError>false</failOnError>
+
+                        <!-- Disable RetireJS analyzer -->
+                        <!--Java dependencies (Spring Boot, Maven JARs) safely disable RetireJS (which scans JavaScript libraries):-->
+                        <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+
+                        <!--Specifies if the build should be failed if a CVSS score above a specified level is identified.
+                        The default is 11 which means since the CVSS scores are 0-10, by default the build will never fail.-->
+                        <failBuildOnCVSS>8</failBuildOnCVSS>
+
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
         </plugins>
     </build>
 

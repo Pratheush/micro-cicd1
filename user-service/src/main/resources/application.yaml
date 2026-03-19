@@ -1,25 +1,33 @@
+#spring:
+#  datasource:
+#    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://172.26.238.72:5432/user_service_db
+#    username: user_service_user
+#    password: userpass
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#    database-platform: org.hibernate.dialect.PostgreSQLDialect
+#  application:
+#    name: user-service
 
+server:
+  port: 9494
+
+#  This way you can filter metrics by service name, instance, or environment.
+# Exposes /actuator/metrics, /actuator/prometheus, /actuator/health, etc.
+# ✅ Important: /actuator/prometheus lets you scrape metrics directly with Prometheus if you want an alternative to OTLP.
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,metrics,circuitbreakers,prometheus,env
   metrics:
     tags:
-      application: user-app
+      application: USER-SERVICE-METRICS-TAG
+#      instance: ${spring.application.name}
+#      environment: dev
   endpoint:
     health:
       show-details: always
-spring:
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://172.26.238.72:5432/user_service_db
-    username: user_service_user
-    password: userpass
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-server:
-  port: 9494

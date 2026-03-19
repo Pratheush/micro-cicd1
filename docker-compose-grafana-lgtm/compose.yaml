@@ -1,0 +1,130 @@
+services:
+  grafana-lgtm:
+    image: 'grafana/otel-lgtm:latest'
+    ports:
+      - '3000:3000'
+      - '4317:4317'
+      - '4318:4318'
+    networks:
+      - backend-network
+
+
+  postgres:
+    image: postgres:15.4-alpine
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: user_service_db
+      POSTGRES_USER: user_service_user
+      POSTGRES_PASSWORD: userpass
+#    ports:
+#      - "5432:5432"
+    volumes:
+      #- postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+
+  redis:
+    image: redis:8.0.6-alpine
+    container_name: redis-cache
+    restart: unless-stopped
+#    ports:
+#      - "6379:6379"
+    volumes:
+      #- redis_data:/data
+      - ./redis_data:/data
+    command: [ "redis-server", "--appendonly", "yes" ]
+    networks:
+      - backend-network
+
+
+  discovery-service:
+    image: discovery-service:latest
+    container_name: discovery-service
+    build: .
+    ports:
+      - "8761:8761"
+    depends_on:
+      - grafana-lgtm
+    environment:
+      SERVER_PORT: 8761
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  auth-service:
+    image: auth-service:latest
+    container_name: auth-service
+    build: .
+#    ports:
+#      - "8080:8080"
+    depends_on:
+      - grafana-lgtm
+      - discovery-service
+      - postgres
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  user-service:
+    image: user-service:latest
+    container_name: user-service
+    build: .
+#    ports:
+#      - "8080:8080"
+    depends_on:
+      - grafana-lgtm
+      - discovery-service
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  project-bookmark:
+    image: project-bookmark:latest
+    container_name: project-bookmark
+    build: .
+#    ports:
+#      - "8080:8080"
+    depends_on:
+      - grafana-lgtm
+      - discovery-service
+      - redis
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+
+  api-gateway:
+    image: api-gateway:1.0
+    container_name: api-gateway
+    build: .
+    ports:
+      - "9595:8080"
+    depends_on:
+      - grafana-lgtm
+      - discovery-service
+      - redis
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: doker
+    networks:
+      - backend-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  backend-network:
+    driver: bridge

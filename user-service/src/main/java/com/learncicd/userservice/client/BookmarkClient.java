@@ -1,5 +1,7 @@
 package com.learncicd.userservice.client;
 
+import com.learncicd.userservice.config.FeignConfig;
+import com.learncicd.userservice.exception.CustomException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -7,6 +9,7 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +18,19 @@ import java.time.Instant;
 /**
  * Keep the Feign client clean (only API contract).
  * BUT HERE WE ARE ADDING Resilience4j Annotations for CircuitBreaker, Retry, Bulkhead, TimeLimiter. JUST FOR LEARNING
+ *
+ * - When you make calls with Feign clients, Spring Cloud + OpenTelemetry automatically injects tracing headers (traceparent, tracestate) into outgoing HTTP requests.
+ * - This ensures that the traceId/spanId flows across service boundaries (e.g., from user-service → bookmark-service → auth-service).
+ * - If you set Feign’s logger level to basic, you’ll see those headers in your dev logs. That way you can confirm that context propagation is working correctly.
+ * 🔧 How to implement : In your application.properties >> spring.cloud.openfeign.client.config.default.loggerLevel=basic
+ * NONE → no logging.
+ * BASIC → logs request method, URL, response status, and headers (including trace headers).
+ * HEADERS → logs request/response headers.
+ * FULL → logs everything (headers, body, metadata).
+ * NOTE ::: For dev, basic is enough to confirm trace headers are propagating. In prod, you usually keep it at none or warn to avoid log noise.
  */
 
-@FeignClient(name="BOOKMARK-PROJECT", url ="${bookmark.service.url}")
+@FeignClient(name="BOOKMARK-PROJECT", url ="${bookmark.service.url}",configuration = FeignConfig.class)
 //@FeignClient(name="PROJECT-BOOKMARK")
 public interface BookmarkClient {
 
@@ -27,20 +40,20 @@ public interface BookmarkClient {
 
     // Delete bookmark with validation : check if bookmark exist with the title before deleting
     @DeleteMapping("/{id}")
-    void delete(@PathVariable(name = "id") Long id);
+    String delete(@PathVariable(name = "id") Long id);
 
 
     @PutMapping("/{id}")
-    void update(@PathVariable(name = "id") Long id,
+    BookmarkDTO update(@PathVariable(name = "id") Long id,
                 @RequestBody @Validated UpdateBookmarkRequest request);
 
 
     @PostMapping
     BookmarkDTO create(@RequestBody @Validated CreateBookmarkRequest request);
 
-    @CircuitBreaker(name="USER-PROJECT-BOOKMARK-CB", fallbackMethod="findByIdFallback")
+    /*@CircuitBreaker(name="USER-PROJECT-BOOKMARK-CB", fallbackMethod="findByIdFallback")
     @Retry(name="USER-PROJECT-BOOKMARK-RETRY")
-    @Bulkhead(name="USER-PROJECT-BOOKMARK-BH", type = Bulkhead.Type.SEMAPHORE)
+    @Bulkhead(name="USER-PROJECT-BOOKMARK-BH", type = Bulkhead.Type.SEMAPHORE)*/
     @GetMapping("/{id}")
     BookmarkDTO findById(@PathVariable(name = "id") Long id);
 
@@ -65,26 +78,32 @@ public interface BookmarkClient {
      * @param pageSize
      * @return
      */
-    @CircuitBreaker(name="USER-PROJECT-BOOKMARK-CB", fallbackMethod="findBookmarksFallback")
+    /*@CircuitBreaker(name="USER-PROJECT-BOOKMARK-CB", fallbackMethod="findBookmarksFallback")
     @Retry(name="USER-PROJECT-BOOKMARK-RETRY")
     //@TimeLimiter(name="USER-PROJECT-BOOKMARK-TL")
-    @Bulkhead(name="USER-PROJECT-BOOKMARK-BH", type = Bulkhead.Type.SEMAPHORE)
+    @Bulkhead(name="USER-PROJECT-BOOKMARK-BH", type = Bulkhead.Type.SEMAPHORE)*/
     @GetMapping
     PagedResult<BookmarkDTO> findBookmarks(
             @RequestParam(name = "page", defaultValue = "1") Integer pageNo,
             @RequestParam(name = "size", defaultValue = "10") Integer pageSize);
 
+
+
     // In Fallback method : Signature must match method + Throwable last param.
-    default PagedResult<BookmarkDTO> findBookmarksFallback(Integer pageNo,
+    /*default PagedResult<BookmarkDTO> findBookmarksFallback(Integer pageNo,
                                               Integer pageSize,
                                               Throwable t) {
         log.warn("Bookmark service unavailable, serving cached data", t);
         //return PagedResult.empty();
         return PagedResult.withMessage("Bookmark service is temporarily unavailable. Please try again later.");
-    }
+    }*/
 
-    default BookmarkDTO findByIdFallback(Long id, Throwable t) {
-        log.warn("Bookmark service unavailable, serving cached data", t);
-        return new BookmarkDTO(0L, "Bookmark Not Found Service Not Available", null, Instant.now());
-    }
+    /*default BookmarkDTO findByIdFallback(Long id, Throwable t) {
+        log.warn("BookmarkClient findByIdFallback invoked", t);
+        if(t instanceof CustomException ce) {
+            throw ce; // Let GlobalExceptionHandler handle it
+        }
+        throw new CustomException("Bookmark service unavailable", HttpStatus.SERVICE_UNAVAILABLE);
+       // return new BookmarkDTO(0L, "Bookmark Not Found Service Not Available", null, Instant.now(), null, null);
+    }*/
 }

@@ -6,9 +6,15 @@ import com.example.pbookmark.domain.*;
 import com.example.pbookmark.domain.errorresponse.ApiError;
 import com.example.pbookmark.domain.xception.BookmarkTitleNotAllowedException;
 import com.example.pbookmark.domain.xception.DuplicateBookmarkException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -40,12 +46,14 @@ class BookmarkController {
     }*/
 
     @GetMapping
-    PagedResult<BookmarkDTO> findBookmarks(
+    public PagedResult<BookmarkDTO> findBookmarks(
             @RequestParam(name = "page", defaultValue = "1") Integer pageNo,
-            @RequestParam(name = "size", defaultValue = "10") Integer pageSize) {
-        log.info("BookmarkController API Request: Find Bookmarks page={}, size={}", pageNo, pageSize);
+            @RequestParam(name = "size", defaultValue = "10") Integer pageSize,
+            @AuthenticationPrincipal Jwt jwt, HttpServletRequest request) {
+        //log.info("TRACEHEADER : {}",request.getHeader("traceparent"));
+        log.info("BookmarkController findBookmarks() API Request: Find Bookmarks page={}, size={}", pageNo, pageSize);
         FindBookmarksQuery query = new FindBookmarksQuery(pageNo, pageSize);
-        return bookmarkService.findBookmarks(query);
+        return bookmarkService.findBookmarks(query,jwt);
     }
 
     /*
@@ -58,18 +66,19 @@ class BookmarkController {
     }*/
 
     @PostMapping
-    ResponseEntity<BookmarkDTO> create(@RequestBody @Validated CreateBookmarkRequest request) {
-
+    public ResponseEntity<BookmarkDTO> create(@RequestBody @Validated CreateBookmarkRequest request, @AuthenticationPrincipal Jwt jwt) {
+        log.info("Creating Bookmark request={}", request);
         String title=request.title();
-        if(title.contains("fuck")) throw new BookmarkTitleNotAllowedException("This Title is Not Allowed");
+        if(title.contains("fuck")) throw new BookmarkTitleNotAllowedException("This Title :" + request.title() + " is not allowed");
 
         CreateBookmarkCommand cmd = new CreateBookmarkCommand(request.title(), request.url());
-        BookmarkDTO bookmark = bookmarkService.create(cmd);
+        BookmarkDTO bookmark = bookmarkService.create(cmd,jwt);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/api/bookmarks/{id}")
                 .buildAndExpand(bookmark.id())
                 .toUri();
+        log.info("Bookmark Created Successfully");
         return ResponseEntity.created(location).body(bookmark);
         //return new ResponseEntity<>(bookmark,HttpStatus.CREATED);
     }
@@ -98,10 +107,13 @@ class BookmarkController {
 
 
     @PutMapping("/{id}")
-    void update(@PathVariable(name = "id") Long id,
-                @RequestBody @Validated UpdateBookmarkRequest request) {
+    public ResponseEntity<BookmarkDTO> update(@PathVariable(name = "id") Long id,
+                @RequestBody @Validated UpdateBookmarkRequest request, @AuthenticationPrincipal Jwt jwt) {
+        log.info("BookmarkController update() API Request: Updating Bookmark id={}, request={}", id, request);
         UpdateBookmarkCommand cmd = new UpdateBookmarkCommand(id, request.title(), request.url());
-        bookmarkService.update(cmd);
+        BookmarkDTO updatedBookmarkDTO = bookmarkService.update(cmd, jwt);
+        log.info("Bookmark Updated Successfully");
+        return ResponseEntity.ok(updatedBookmarkDTO);
     }
 
     /*@GetMapping("/{id}")
@@ -112,25 +124,37 @@ class BookmarkController {
     }*/
 
     @GetMapping("/{id}")
-    ResponseEntity<BookmarkDTO> findById(@PathVariable(name = "id") Long id) {
-        log.info("BookmarkController API Request: Find Bookmark id={}", id);
-        BookmarkDTO bookmarkDTO=bookmarkService.findById(id);
-        log.info("BookmarkController API Response: Bookmark DTO={}", bookmarkDTO);
+    public ResponseEntity<BookmarkDTO> findById(@PathVariable(name = "id") Long id, @AuthenticationPrincipal Jwt jwt) {
+        log.info("BookmarkController API Request: Finding Bookmark id={}", id);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("Authorities from SecurityContext: {}",authentication.getAuthorities());
+
+        BookmarkDTO bookmarkDTO=bookmarkService.findById(id,jwt);
+        log.info(" Bookmark Found : {}", bookmarkDTO);
         return ResponseEntity.ofNullable(bookmarkDTO);
     }
 
     @DeleteMapping("/{id}")
-    void delete(@PathVariable(name = "id") Long id) {
-        bookmarkService.delete(id);
+    public ResponseEntity<String> delete(@PathVariable(name = "id") Long id, @AuthenticationPrincipal Jwt jwt) {
+        log.info("BookmarkController delete() API Request: Deleting Bookmark id={}", id);
+        String deleteMsg = bookmarkService.delete(id, jwt);
+        log.info("Bookmark Deleted Successfully");
+        return ResponseEntity.ok(deleteMsg);
+
     }
 
 
-    @ExceptionHandler(DuplicateBookmarkException.class)
+    @ExceptionHandler({DuplicateBookmarkException.class})
     public ResponseEntity<ApiError> handleDuplicateBookmarkException(DuplicateBookmarkException e) {
+        log.warn("BookmarkController handleDuplicateBookmarkException() API Request: Duplicate Bookmark Exception={}", e.getMessage());
         ApiError error = new ApiError(e.getMessage());
         error.setStatus(HttpStatus.BAD_REQUEST);
         error.setTimestamp(LocalDateTime.now());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON) // Without application/json, Feign may discard the body.
+                .body(error);
     }
 
     /*@ExceptionHandler({BookmarkTitleNotAllowedException.class})

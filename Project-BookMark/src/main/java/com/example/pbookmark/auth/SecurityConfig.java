@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
@@ -80,8 +82,14 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info("SecurityConfig API Request: Security Filter Chain HttpSecurity={}", http );
         http
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/actuator/health").permitAll();
+                    auth.anyRequest().authenticated();
+                })
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
+                    jwt.decoder(jwtDecoder());
+                    jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()); // JwtAuthenticationConverter is added
+                }));
         return http.build();
     }
 
@@ -108,6 +116,31 @@ public class SecurityConfig {
         byte[] decodeKey = Base64.getDecoder().decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(decodeKey);
 
+    }
+
+    /**
+     * explicitly configured a converter to map "authorities" → GrantedAuthority objects.
+     * Spring will NOT map "authorities" → GrantedAuthority objects automatically
+     * If not mapped: >> Authentication.getAuthorities() = []
+     * Then: hasAuthority('BOOKMARK_READ') = FALSE , Even though it exists in the token.
+     *
+     * JwtAuthenticationConverter should be In the project-bookmark service (the resource server) —
+     * because that is where Spring Security must convert the incoming JWT into Authentication
+     * with GrantedAuthority for @PreAuthorize to work.
+     * @return
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter =
+                new JwtGrantedAuthoritiesConverter();
+
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
+        grantedAuthoritiesConverter.setAuthorityPrefix("");
+
+        JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
+        jwtConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+
+        return jwtConverter;
     }
 
 }

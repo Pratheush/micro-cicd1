@@ -5,6 +5,7 @@ import com.learncicd.apigateway.filter.AuthGPTFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -31,6 +32,9 @@ public class RoutesReactive {
 
     @Qualifier("userKeyResolver")
     private final KeyResolver userKeyResolver;
+
+    @Value("${service-discovery}")
+    private String DISCOVERYSERVICE;
 
     public RoutesReactive(AuthGPTFilter authFilter, RedisRateLimiter userServiceRateLimiter, RedisRateLimiter bookmarkRateLimiter, KeyResolver ipKeyResolver, KeyResolver userKeyResolver) {
         this.authFilter = authFilter;
@@ -78,11 +82,17 @@ public class RoutesReactive {
                         .path("/api/users/**")
                         //.filters(f -> f.filter(authFilter.apply(new AuthFilter.Config())))
                         //.filters(f -> f.filter(authFilter.apply(new AuthGPTFilter.Config())))
-                        .filters(f -> f.circuitBreaker(c -> c.setName("USER-SERVICE-CB")
-                                .setFallbackUri("forward:/api/fallback/userServiceFallback"))
+                        .filters(f -> f
+                                .filter((exchange, chain) -> {
+                                    log.info("Gateway route=user_service method={} path={}",
+                                            exchange.getRequest().getMethod(),
+                                            exchange.getRequest().getURI().getPath());
+                                    return chain.filter(exchange);
+                                })
+                                .circuitBreaker(c -> c.setName("USER-SERVICE-CB")
+                                        .setFallbackUri("forward:/api/fallback/userServiceFallback"))
                                 .requestRateLimiter(rl -> rl.setRateLimiter(userServiceRateLimiter)
-                                .setKeyResolver(userKeyResolver)
-                                )
+                                        .setKeyResolver(userKeyResolver))
                         )
                         //.uri("http://localhost:9494"))
                         .uri("lb://USER-SERVICE"))
@@ -92,11 +102,17 @@ public class RoutesReactive {
                         .path("/api/bookmarks/**")
                         //.filters(f -> f.filter(authFilter.apply(new AuthFilter.Config())))
                         //.filters(f -> f.filter(authFilter.apply(new AuthGPTFilter.Config())))
-                        .filters(f -> f.circuitBreaker(c -> c.setName("PROJECT-BOOKMARK-CB")
+                        .filters(f -> f
+                                .filter((exchange, chain) -> {
+                                    log.info("Gateway route=bookmark_service method={} path={}",
+                                            exchange.getRequest().getMethod(),
+                                            exchange.getRequest().getURI().getPath());
+                                    return chain.filter(exchange);
+                                })
+                                .circuitBreaker(c -> c.setName("PROJECT-BOOKMARK-CB")
                                         .setFallbackUri("forward:/api/fallback/bookmarkServiceFallback"))
                                 .requestRateLimiter(rl -> rl.setRateLimiter(bookmarkRateLimiter)
-                                .setKeyResolver(ipKeyResolver)
-                                )
+                                        .setKeyResolver(ipKeyResolver))
                         )
                         //.uri("http://localhost:3331"))
                         .uri("lb://PROJECT-BOOKMARK"))
@@ -104,6 +120,14 @@ public class RoutesReactive {
                 // AUTH-SERVICE
                 .route("auth_service", r -> r
                         .path("/auth/**")
+                        .filters(f -> f
+                                .filter((exchange, chain) -> {
+                                    log.info("Gateway route=auth_service method={} path={}",
+                                            exchange.getRequest().getMethod(),
+                                            exchange.getRequest().getURI().getPath());
+                                    return chain.filter(exchange);
+                                })
+                        )
                         //.uri("http://localhost:9495"))
                         .uri("lb://AUTH-SERVICE"))
 
@@ -116,9 +140,17 @@ public class RoutesReactive {
                 // EUREKA UI ROOT
                 .route("discovery_service", r -> r
                         .path("/eureka/web")
-                        .filters(f -> f.setPath("/"))      // rewrite /eureka/web → /
-                        .uri("http://localhost:8761"))
-                        //.uri("lb://DISCOVERY-SERVICE"))
+                        .filters(f -> f
+                                .filter((exchange, chain) -> {
+                                    log.info("Gateway route=discovery_service method={} path={}",
+                                            exchange.getRequest().getMethod(),
+                                            exchange.getRequest().getURI().getPath());
+                                    return chain.filter(exchange);
+                                })
+                                .setPath("/"))      // rewrite /eureka/web → /
+                        //.uri("http://localhost:8761"))
+                        //.uri("http://discovery-service:8761"))
+                        .uri(DISCOVERYSERVICE))
 
                 // EUREKA STATIC RESOURCES
                 /*.route("discovery_service_static", r -> r
